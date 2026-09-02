@@ -1,9 +1,12 @@
 import { getCloudflareContext } from "@opennextjs/cloudflare";
 
 export type D1Result<T> = { results: T[] };
+export type D1RunResult = { success: boolean; meta?: { last_row_id?: number; changes?: number } };
 export type D1Statement = {
+  bind(...values: unknown[]): D1Statement;
   all<T>(): Promise<D1Result<T>>;
   first<T>(): Promise<T | null>;
+  run(): Promise<D1RunResult>;
 };
 export type D1Binding = {
   prepare(query: string): D1Statement;
