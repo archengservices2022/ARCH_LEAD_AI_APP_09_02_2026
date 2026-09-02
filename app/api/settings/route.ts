@@ -1,5 +1,3 @@
-export const runtime = "edge";
-
 type SettingsRow = {
   key: string;
   value: string;
