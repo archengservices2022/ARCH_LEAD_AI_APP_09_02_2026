@@ -4,7 +4,7 @@
   "private": true,
   "scripts": {
     "dev": "next dev",
-    "build": "opennextjs-cloudflare build --dangerouslyUseUnsupportedNextVersion",
+    "build": "next build",
     "build:next": "next build",
     "build:cloudflare": "opennextjs-cloudflare build --dangerouslyUseUnsupportedNextVersion",
     "preview": "opennextjs-cloudflare build --dangerouslyUseUnsupportedNextVersion && opennextjs-cloudflare preview",
