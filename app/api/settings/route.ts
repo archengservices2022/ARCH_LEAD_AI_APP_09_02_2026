@@ -1,7 +1,24 @@
 export const runtime = "edge";
 
+type SettingsRow = {
+  key: string;
+  value: string;
+};
+
+type D1Result<T> = {
+  results: T[];
+};
+
+type D1Statement = {
+  all<T>(): Promise<D1Result<T>>;
+};
+
+type D1Binding = {
+  prepare(query: string): D1Statement;
+};
+
 interface CloudflareEnv {
-  DB: D1Database;
+  DB: D1Binding;
 }
 
 export async function GET() {
@@ -17,7 +34,7 @@ export async function GET() {
 
     const result = await env.DB.prepare(
       "SELECT key, value FROM settings ORDER BY key"
-    ).all<{ key: string; value: string }>();
+    ).all<SettingsRow>();
 
     const settings = Object.fromEntries(
       result.results.map((row) => [row.key, row.value])
