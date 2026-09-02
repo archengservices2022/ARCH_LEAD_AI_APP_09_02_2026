@@ -23,6 +23,7 @@ Dashboard, Lead Discovery, CRM Leads, Outreach, Follow-ups & Replies, Daily Repo
 
 ## Deployment
 Cloudflare Workers Builds is connected to the `main` branch for automatic deployment testing.
+Automatic deployment trigger verified from GitHub commits.
 
 ## Safety
 Do not commit Gmail OAuth credentials, Cloudflare tokens, passwords, refresh tokens or session secrets. Configure secrets in Cloudflare only. Keep real sending disabled until discovery, D1 recording, Gmail delivery, tracking labels, reply matching and follow-up cancellation have all passed dry-run/controlled testing.
