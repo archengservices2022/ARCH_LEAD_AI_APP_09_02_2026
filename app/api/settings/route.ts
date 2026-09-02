@@ -17,10 +17,14 @@ type D1Binding = {
   prepare(query: string): D1Statement;
 };
 
+type ArchCloudflareEnv = CloudflareEnv & {
+  DB: D1Binding;
+};
+
 export async function GET() {
   try {
     const { env } = getCloudflareContext();
-    const db = env.DB as D1Binding | undefined;
+    const db = (env as ArchCloudflareEnv).DB;
 
     if (!db) {
       return Response.json(
