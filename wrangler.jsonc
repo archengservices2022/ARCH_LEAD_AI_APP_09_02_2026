@@ -1,0 +1,12 @@
+{
+  "$schema": "./node_modules/wrangler/config-schema.json",
+  "name": "arch-lead-ai-app",
+  "compatibility_date": "2026-09-02",
+  "compatibility_flags": ["nodejs_compat"],
+  "d1_databases": [{
+    "binding": "DB",
+    "database_name": "arch-lead-manager-db",
+    "database_id": "e72927ce-37fa-4ca0-83fe-9bd1270e1bdf",
+    "migrations_dir": "migrations"
+  }]
+}
