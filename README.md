@@ -21,5 +21,8 @@ Clean lead intelligence, CRM and outreach system for Arch Engineering Services.
 ## Application areas
 Dashboard, Lead Discovery, CRM Leads, Outreach, Follow-ups & Replies, Daily Reports.
 
+## Deployment
+Cloudflare Workers Builds is connected to the `main` branch for automatic deployment testing.
+
 ## Safety
 Do not commit Gmail OAuth credentials, Cloudflare tokens, passwords, refresh tokens or session secrets. Configure secrets in Cloudflare only. Keep real sending disabled until discovery, D1 recording, Gmail delivery, tracking labels, reply matching and follow-up cancellation have all passed dry-run/controlled testing.
