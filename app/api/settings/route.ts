@@ -1,3 +1,5 @@
+import { getCloudflareContext } from "@opennextjs/cloudflare";
+
 type SettingsRow = {
   key: string;
   value: string;
@@ -15,24 +17,21 @@ type D1Binding = {
   prepare(query: string): D1Statement;
 };
 
-interface CloudflareEnv {
-  DB: D1Binding;
-}
-
 export async function GET() {
   try {
-    const env = (globalThis as typeof globalThis & { env?: CloudflareEnv }).env;
+    const { env } = getCloudflareContext();
+    const db = env.DB as D1Binding | undefined;
 
-    if (!env?.DB) {
+    if (!db) {
       return Response.json(
         { ok: false, error: "D1 binding DB is unavailable" },
         { status: 503 }
       );
     }
 
-    const result = await env.DB.prepare(
-      "SELECT key, value FROM settings ORDER BY key"
-    ).all<SettingsRow>();
+    const result = await db
+      .prepare("SELECT key, value FROM settings ORDER BY key")
+      .all<SettingsRow>();
 
     const settings = Object.fromEntries(
       result.results.map((row) => [row.key, row.value])
