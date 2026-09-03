@@ -1,0 +1,3 @@
+"use client";
+import{useState}from"react";
+export default function SourceLibraryButton(){const[busy,setBusy]=useState(false),[msg,setMsg]=useState("");async function load(){setBusy(true);setMsg("");try{const r=await fetch("/api/discovery/source-library",{method:"POST"});const j=await r.json();if(!r.ok)throw new Error(j.error||"Could not load library");setMsg(`${j.added} new portal sources added.`);setTimeout(()=>location.reload(),700)}catch(e){setMsg(e instanceof Error?e.message:"Could not load library")}finally{setBusy(false)}}return <div className="libraryAction"><button onClick={load} disabled={busy}>{busy?"Loading…":"Load Starter RFP/RFQ Library"}</button>{msg&&<span>{msg}</span>}</div>}
