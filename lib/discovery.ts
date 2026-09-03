@@ -19,15 +19,16 @@ export type ScoredCandidate = DiscoveryCandidateInput & {
 };
 
 const engineeringSignals = [
-  "autodesk inventor","solidworks","autocad","cad","mechanical design","drafting","shop drawing","fabrication drawing","bom","reverse engineering","steel detailing","plant engineering","3d model","product design","design automation"
+  "autodesk inventor","inventor","solidworks","autocad","cad designer","cad drafter","mechanical drafter","mechanical design engineer","mechanical designer","mechanical design","drafting","shop drawing","fabrication drawing","manufacturing drawing","production drawing","assembly drawing","detail drawing","weldment drawing","bom","bill of materials","reverse engineering","steel detailing","plant engineering","3d model","product design","equipment design","machine design","custom equipment","material handling","design automation","cad automation","ilogic"
 ];
 const softwareSignals = [
   "custom software","automation","web application","mobile app","crm","dashboard","workflow","integration","api","field service","scheduling","portal","inventory system","digital transformation"
 ];
 const buyerSignals = [
-  "rfp","request for proposal","seeking","looking for","need","needs","vendor","contractor","consultant","quote","proposal","project","upgrade","replace","implement","develop","design","engineering services"
+  "rfp","rfq","request for proposal","request for quote","seeking","looking for","need","needs","vendor","contractor","consultant","quote","proposal","project","upgrade","replace","implement","develop","design support","engineering support","drafting support","contract engineer","contract designer","subcontract","outsource","overflow","backlog","urgent hiring","multiple openings","hiring","opening","new facility","new production line","expansion"
 ];
 const negativeSignals = ["student","tutorial","course","job seeker","resume","free template","personal project"];
+const providerSignals = ["we provide engineering services","we provide cad services","our cad services","our drafting services","engineering services company","contact us for cad","we specialize in cad"];
 
 function hits(text: string, terms: string[]) {
   return terms.filter((term) => text.includes(term));
@@ -38,20 +39,24 @@ export function scoreCandidate(input: DiscoveryCandidateInput): ScoredCandidate 
   const serviceHits = hits(text, input.division === "Engineering" ? engineeringSignals : softwareSignals);
   const buyerHits = hits(text, buyerSignals);
   const negativeHits = hits(text, negativeSignals);
+  const providerHits = hits(text, providerSignals);
 
-  let score = 20;
-  score += Math.min(35, serviceHits.length * 9);
-  score += Math.min(30, buyerHits.length * 8);
-  if (input.website) score += 5;
-  if (input.sourceUrl) score += 5;
+  let score = 15;
+  score += Math.min(35, serviceHits.length * 8);
+  score += Math.min(35, buyerHits.length * 9);
+  if (input.website) score += 4;
+  if (input.sourceUrl) score += 4;
   if (input.contactEmail) score += 10;
+  if (buyerHits.length === 0) score -= 20;
   score -= Math.min(35, negativeHits.length * 15);
+  score -= Math.min(30, providerHits.length * 15);
   score = Math.max(0, Math.min(100, score));
 
-  const decision: ScoredCandidate["decision"] = score >= 70 ? "Qualified" : score >= 50 ? "Review" : "Rejected";
-  const positives = [...serviceHits.slice(0, 3), ...buyerHits.slice(0, 2)];
+  let decision: ScoredCandidate["decision"] = score >= 70 ? "Qualified" : score >= 50 ? "Review" : "Rejected";
+  if (buyerHits.length === 0 && decision === "Qualified") decision = "Review";
+  const positives = [...serviceHits.slice(0, 3), ...buyerHits.slice(0, 3)];
   const reason = positives.length
-    ? `${decision}: matched ${positives.join(", ")}${input.contactEmail ? "; contact email available" : ""}.`
+    ? `${decision}: matched ${positives.join(", ")}${buyerHits.length ? "; buyer intent detected" : "; buyer intent not yet confirmed"}${input.contactEmail ? "; contact email available" : ""}.`
     : `${decision}: insufficient buyer/service evidence for automatic qualification.`;
 
   return { ...input, score, decision, reason };
