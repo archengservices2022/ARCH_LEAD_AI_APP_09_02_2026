@@ -1,0 +1,19 @@
+import type {DiscoveryCandidateInput} from "./discovery";
+import {crawlPage} from "./keyless-crawler";
+
+const needs=[
+ ["Autodesk Inventor / CAD support",["autodesk inventor","inventor designer","cad designer","cad drafter","mechanical drafter"]],
+ ["SolidWorks / mechanical design support",["solidworks","mechanical design","mechanical designer","product design"]],
+ ["Fabrication / shop drawings",["fabrication drawing","shop drawing","fabrication drawings","detail drawing","production drawing"]],
+ ["Equipment / machine design",["equipment design","machine design","industrial equipment","custom equipment","material handling"]],
+ ["Plant / structural engineering support",["plant expansion","new production line","new facility","structural support","platform design","steel structure"]],
+ ["CAD automation / drawing productivity",["cad automation","design automation","drawing automation","bom automation","engineering automation"]],
+ ["Engineering overflow / staffing demand",["engineering backlog","urgent hiring","multiple openings","mechanical engineer opening","cad opening","drafter opening"]],
+] as const;
+const buyer=["rfp","rfq","request for proposal","request for quote","seeking","looking for","contractor","consultant","vendor","project","expansion","new facility","new production line","hiring","opening","backlog","design support"];
+const provider=["we provide","our services","engineering services company","cad services","drafting services","contact us for","we specialize in"];
+const follow=/(career|jobs|news|press|project|expansion|rfp|rfq|bid|solicitation|procurement|engineering|design)/i;
+function matched(text:string,terms:readonly string[]){return terms.filter(x=>text.includes(x));}
+function company(url:string){try{return new URL(url).hostname.replace(/^www\./,"")}catch{return"Unknown company"}}
+function evaluate(url:string,title:string,text:string,sourceName:string):DiscoveryCandidateInput|null{const t=text.toLowerCase();let best:{name:string;hits:string[]}|null=null;for(const [name,terms] of needs){const h=matched(t,terms);if(h.length&&(!best||h.length>best.hits.length))best={name,h};}if(!best)return null;const buyerHits=matched(t,buyer),providerHits=matched(t,provider);if(providerHits.length>=2&&buyerHits.length===0)return null;const evidence=`${title||company(url)}. Need detected: ${best.name}. Evidence terms: ${best.hits.slice(0,5).join(", ")}${buyerHits.length?`. Buyer intent: ${buyerHits.slice(0,4).join(", ")}`:""}. ${text.slice(0,1000)}`;return{company:company(url),division:"Engineering",service:best.name,website:(()=>{try{return new URL(url).origin}catch{return undefined}})(),sourceName,sourceUrl:url,evidence};}
+export async function searchMechanicalLeads(sources:{name:string;url:string;source_type:string}[]){const out:DiscoveryCandidateInput[]=[],seen=new Set<string>();for(const source of sources.slice(0,20)){const root=await crawlPage(source.url);if(!root)continue;const pages=[root];for(const link of root.links.filter(x=>follow.test(x)).slice(0,5)){if(seen.has(link))continue;seen.add(link);const p=await crawlPage(link);if(p)pages.push(p);}for(const p of pages){if(seen.has(p.url))continue;seen.add(p.url);const c=evaluate(p.url,p.title,p.text,`Mechanical v1 — ${source.name}`);if(c)out.push(c);}}return out.slice(0,60);}
