@@ -2,9 +2,10 @@
 import{useState}from"react";
 export default function OutreachControls(){
  const[busy,setBusy]=useState("");const[msg,setMsg]=useState("");const[ok,setOk]=useState<boolean|null>(null);
- async function call(path:string,reload=false){setBusy(path);setMsg("");setOk(null);try{const r=await fetch(path,{method:"POST",headers:{Accept:"application/json"},cache:"no-store"});const j=await r.json();if(!r.ok)throw new Error(j.error||"Action failed");setOk(true);setMsg(j.message||"Completed. No email sent.");if(reload)setTimeout(()=>location.reload(),1400);}catch(e){setOk(false);setMsg(e instanceof Error?e.message:"Action failed");}finally{setBusy("");}}
+ async function call(path:string,reload=false,confirmText?:string){if(confirmText&&!window.confirm(confirmText))return;setBusy(path);setMsg("");setOk(null);try{const r=await fetch(path,{method:"POST",headers:{Accept:"application/json"},cache:"no-store"});const j=await r.json();if(!r.ok)throw new Error(j.error||"Action failed");setOk(true);setMsg(j.message||"Completed. No email sent.");if(reload)setTimeout(()=>location.reload(),1400);}catch(e){setOk(false);setMsg(e instanceof Error?e.message:"Action failed");}finally{setBusy("");}}
  return <div><div className="discoveryControls">
   <button disabled={!!busy} onClick={()=>call("/api/outreach/gmail-check")}>{busy.includes("gmail-check")?"Testing Gmail...":"Test Gmail Connection"}</button>
+  <button disabled={!!busy} onClick={()=>call("/api/outreach/test-send",false,"Send exactly ONE real test email from skota@archengineeringservices.com to archengservices2022@gmail.com?")}>{busy.includes("test-send")?"Sending 1 Test Email...":"Send 1 Test Email"}</button>
   <button disabled={!!busy} onClick={()=>call("/api/discovery/enrich-contacts")}>{busy.includes("enrich")?"Enriching - please wait...":"Enrich Qualified Contacts"}</button>
   <button disabled={!!busy} onClick={()=>call("/api/discovery/promote-ready")}>{busy.includes("promote")?"Checking - please wait...":"Promote Verified Leads"}</button>
   <button disabled={!!busy} onClick={()=>call("/api/outreach/prepare",true)}>{busy.includes("prepare")?"Preparing - please wait...":"Prepare Outreach Drafts"}</button>
