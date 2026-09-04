@@ -1,1 +1,26 @@
-"use client";import{useState}from"react";export default function OutreachControls(){const[busy,setBusy]=useState(""),[msg,setMsg]=useState("");async function call(path:string){setBusy(path);setMsg("");try{const r=await fetch(path,{method:"POST",headers:{Accept:"application/json"},cache:"no-store"}),j=await r.json();if(!r.ok)throw new Error(j.error||"Action failed");setMsg(j.message||"Completed. No email sent.");setTimeout(()=>location.reload(),900)}catch(e){setMsg(e instanceof Error?e.message:"Action failed")}finally{setBusy("")}}return <div className="discoveryControls"><button disabled={!!busy} onClick={()=>call("/api/discovery/enrich-contacts")}>{busy.includes("enrich")?"Enriching…":"Enrich Qualified Contacts"}</button><button disabled={!!busy} onClick={()=>call("/api/discovery/promote-ready")}>{busy.includes("promote")?"Checking…":"Promote Verified Leads"}</button><button disabled={!!busy} onClick={()=>call("/api/outreach/prepare")}>{busy.includes("prepare")?"Preparing…":"Prepare Outreach Drafts"}</button>{msg&&<span>{msg}</span>}</div>}
+"use client";
+import{useState}from"react";
+export default function OutreachControls(){
+ const[busy,setBusy]=useState("");
+ const[msg,setMsg]=useState("");
+ const[ok,setOk]=useState<boolean|null>(null);
+ async function call(path:string){
+  setBusy(path);setMsg("");setOk(null);
+  try{
+   const r=await fetch(path,{method:"POST",headers:{Accept:"application/json"},cache:"no-store"});
+   const j=await r.json();
+   if(!r.ok)throw new Error(j.error||"Action failed");
+   setOk(true);setMsg(j.message||"Completed. No email sent.");
+  }catch(e){setOk(false);setMsg(e instanceof Error?e.message:"Action failed");}
+  finally{setBusy("");}
+ }
+ return <div>
+  <div className="discoveryControls">
+   <button disabled={!!busy} onClick={()=>call("/api/discovery/enrich-contacts")}>{busy.includes("enrich")?"Enriching - please wait...":"Enrich Qualified Contacts"}</button>
+   <button disabled={!!busy} onClick={()=>call("/api/discovery/promote-ready")}>{busy.includes("promote")?"Checking - please wait...":"Promote Verified Leads"}</button>
+   <button disabled={!!busy} onClick={()=>call("/api/outreach/prepare")}>{busy.includes("prepare")?"Preparing - please wait...":"Prepare Outreach Drafts"}</button>
+  </div>
+  {busy&&<div style={{marginTop:14,padding:"12px 16px",border:"1px solid #cbd5e1",borderRadius:8,background:"#f8fafc",fontWeight:600}}>Processing... Please wait. Do not click another button.</div>}
+  {msg&&<div role="status" style={{marginTop:14,padding:"14px 16px",border:`1px solid ${ok?"#86b99a":"#d99a9a"}`,borderRadius:8,background:ok?"#f1f8f3":"#fff4f4",fontWeight:700,lineHeight:1.5}}>Result: {msg}</div>}
+ </div>;
+}
