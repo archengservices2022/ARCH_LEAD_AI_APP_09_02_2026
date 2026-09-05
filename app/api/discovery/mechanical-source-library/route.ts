@@ -1,5 +1,5 @@
 import{getDb,getSettings}from"../../../../lib/db";
-export const engineeringProspectStarters=[
+const engineeringProspectStarters=[
  ["Regional Manufacturing Prospect","Triad Manufacturing","https://triadmfg.com/"],
  ["Regional Process Equipment Prospect","Custom Metalcraft","https://custom-metalcraft.com/"],
  ["Regional Manufacturing Prospect","Van-Am Tool & Engineering","https://www.vanam-tool.com/"],
