@@ -1,0 +1,29 @@
+name: Run Noon Outreach Once
+
+on:
+  push:
+    paths:
+      - ".github/workflows/run-noon-outreach.yml"
+
+jobs:
+  run-outreach:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Trigger production outreach
+        env:
+          AUTOMATION_SECRET: ${{ secrets.AUTOMATION_SECRET }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          headers=(-H "content-type: application/json")
+          if [ -n "${AUTOMATION_SECRET:-}" ]; then
+            headers+=(-H "authorization: Bearer ${AUTOMATION_SECRET}")
+          fi
+          code=$(curl -sS --max-time 310 -o response.json -w "%{http_code}" -X POST "https://archengineeringservicesai.com/api/automation/daily-outreach" "${headers[@]}")
+          cat response.json
+          echo
+          echo "HTTP_STATUS=${code}"
+          if [ "$code" -lt 200 ] || [ "$code" -ge 300 ]; then
+            exit 1
+          fi
