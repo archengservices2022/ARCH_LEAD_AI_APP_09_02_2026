@@ -1,7 +1,7 @@
 {
   "$schema": "./node_modules/wrangler/config-schema.json",
   "name": "arch-lead-ai-app-09-02-2026",
-  "main": ".open-next/worker.js",
+  "main": "./custom-worker.ts",
   "compatibility_date": "2026-09-02",
   "compatibility_flags": ["nodejs_compat"],
   "workers_dev": true,
@@ -11,6 +11,9 @@
     "binding": "ASSETS"
   },
   "observability": {"enabled": true},
+  "triggers": {
+    "crons": ["0 13 * * 1-5", "0 14 * * 1-5"]
+  },
   "d1_databases": [{
     "binding": "DB",
     "database_name": "arch-lead-manager-db",
