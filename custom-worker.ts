@@ -2,6 +2,9 @@
 // @ts-ignore
 import handler from "./.open-next/worker.js";
 
+type CronController = { scheduledTime: number };
+type WorkerExecutionContext = { waitUntil(promise: Promise<unknown>): void };
+
 function chicagoParts(timestamp: number) {
   const parts = new Intl.DateTimeFormat("en-US", {
     timeZone: "America/Chicago",
@@ -12,10 +15,10 @@ function chicagoParts(timestamp: number) {
   return Object.fromEntries(parts.map((p) => [p.type, p.value]));
 }
 
-export default {
+const worker = {
   fetch: handler.fetch,
 
-  async scheduled(controller: ScheduledController, env: CloudflareEnv, ctx: ExecutionContext) {
+  async scheduled(controller: CronController, env: CloudflareEnv, ctx: WorkerExecutionContext) {
     const local = chicagoParts(controller.scheduledTime);
     const weekday = local.weekday;
     const hour = Number(local.hour);
@@ -25,7 +28,7 @@ export default {
     if (!weekday || !["Mon", "Tue", "Wed", "Thu", "Fri"].includes(weekday) || hour !== 8) return;
 
     const headers = new Headers({ "content-type": "application/json" });
-    const secret = (env as any).AUTOMATION_SECRET;
+    const secret = (env as unknown as Record<string, string | undefined>).AUTOMATION_SECRET;
     if (secret) headers.set("authorization", `Bearer ${secret}`);
 
     const url = "https://archengineeringservicesai.com/api/automation/daily-outreach";
@@ -37,4 +40,6 @@ export default {
 
     ctx.waitUntil(task);
   },
-} satisfies ExportedHandler<CloudflareEnv>;
+};
+
+export default worker;
