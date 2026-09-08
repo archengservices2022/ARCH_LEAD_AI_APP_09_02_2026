@@ -7,6 +7,7 @@ const items = [
   ["Outreach", "/outreach"],
   ["Follow-ups & Replies", "/followups"],
   ["Daily Reports", "/reports"],
+  ["Settings", "/settings"],
 ];
 
 export default function Shell({active,dryRun,children}:{active:string;dryRun:boolean;children:React.ReactNode}) {
