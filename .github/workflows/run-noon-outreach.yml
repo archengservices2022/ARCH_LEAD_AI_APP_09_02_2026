@@ -4,26 +4,30 @@ on:
   push:
     paths:
       - ".github/workflows/run-noon-outreach.yml"
+  workflow_dispatch:
 
 jobs:
   run-outreach:
     runs-on: ubuntu-latest
-    timeout-minutes: 10
+    timeout-minutes: 15
     steps:
-      - name: Trigger production outreach
+      - name: Run production outreach stages
         env:
           AUTOMATION_SECRET: ${{ secrets.AUTOMATION_SECRET }}
         shell: bash
         run: |
           set -euo pipefail
+          BASE="https://arch-lead-ai-app-09-02-2026.archengservices2022.workers.dev"
           headers=(-H "content-type: application/json")
-          if [ -n "${AUTOMATION_SECRET:-}" ]; then
-            headers+=(-H "authorization: Bearer ${AUTOMATION_SECRET}")
-          fi
-          code=$(curl -sS --max-time 310 -o response.json -w "%{http_code}" -X POST "https://arch-lead-ai-app-09-02-2026.archengservices2022.workers.dev/api/automation/daily-outreach" "${headers[@]}")
-          cat response.json
-          echo
-          echo "HTTP_STATUS=${code}"
-          if [ "$code" -lt 200 ] || [ "$code" -ge 300 ]; then
-            exit 1
-          fi
+          if [ -n "${AUTOMATION_SECRET:-}" ]; then headers+=(-H "authorization: Bearer ${AUTOMATION_SECRET}"); fi
+          call() {
+            name="$1"; path="$2"; timeout="$3"
+            echo "===== ${name} ====="
+            code=$(curl -sS --max-time "$timeout" -o response.json -w "%{http_code}" -X POST "${BASE}${path}" "${headers[@]}")
+            cat response.json; echo; echo "HTTP_STATUS=${code}"
+            if [ "$code" -lt 200 ] || [ "$code" -ge 300 ]; then exit 1; fi
+          }
+          call "Apply targets" "/api/automation/apply-outreach-targets" 30
+          call "Discovery and preparation" "/api/automation/daily-outreach" 310
+          call "Approve and send batch 1" "/api/automation/send-ready" 120
+          call "Approve and send batch 2" "/api/automation/send-ready" 120
