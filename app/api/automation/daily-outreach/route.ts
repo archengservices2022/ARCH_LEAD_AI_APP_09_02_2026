@@ -61,12 +61,12 @@ export async function POST(req: Request) {
     )
   `).run();
 
+  // One bounded send batch per Worker invocation. This prevents a single request
+  // from exhausting Cloudflare's subrequest budget. Remaining approved messages
+  // stay queued for the next scheduled/manual invocation.
   const sends: Stage[] = [];
-  for (let i = 0; i < 3; i++) {
-    const result = await runStage(`Send batch ${i + 1}`, sendApproved);
-    sends.push(result);
-    if (result.ok === false || Number(result.sent || 0) === 0) break;
-  }
+  const result = await runStage("Send batch", sendApproved);
+  sends.push(result);
 
   const totals = await db.prepare(`SELECT division,COUNT(*) n FROM outreach_messages WHERE status='Sent' AND date(sent_at)=date('now') GROUP BY division`).all<{division:string;n:number}>();
   const engineering = Number(totals.results.find(x => x.division === 'Engineering')?.n || 0);
@@ -78,6 +78,7 @@ export async function POST(req: Request) {
     approved: Number((approved as any).meta?.changes || 0),
     sends,
     today: { engineering, software, total: engineering + software },
-    targets: { engineering: settings.engineeringTarget, software: settings.softwareTarget, total: settings.totalLimit }
+    targets: { engineering: settings.engineeringTarget, software: settings.softwareTarget, total: settings.totalLimit },
+    remainingApprovedWillSendOnNextRun: true
   });
 }
