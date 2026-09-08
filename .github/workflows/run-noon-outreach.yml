@@ -20,7 +20,7 @@ jobs:
           if [ -n "${AUTOMATION_SECRET:-}" ]; then
             headers+=(-H "authorization: Bearer ${AUTOMATION_SECRET}")
           fi
-          code=$(curl -sS --max-time 310 -o response.json -w "%{http_code}" -X POST "https://archengineeringservicesai.com/api/automation/daily-outreach" "${headers[@]}")
+          code=$(curl -sS --max-time 310 -o response.json -w "%{http_code}" -X POST "https://arch-lead-ai-app-09-02-2026.archengservices2022.workers.dev/api/automation/daily-outreach" "${headers[@]}")
           cat response.json
           echo
           echo "HTTP_STATUS=${code}"
