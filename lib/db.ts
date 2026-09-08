@@ -35,9 +35,9 @@ export async function getSettings() {
   `).first<{dry_run:string|null;engineering_target:string|null;software_target:string|null;total_limit:string|null;sender_email:string|null;tracking_email:string|null}>();
   return {
     dryRun: row?.dry_run !== "false",
-    engineeringTarget: Number(row?.engineering_target ?? 10),
+    engineeringTarget: Number(row?.engineering_target ?? 25),
     softwareTarget: Number(row?.software_target ?? 10),
-    totalLimit: Number(row?.total_limit ?? 20),
+    totalLimit: Number(row?.total_limit ?? 35),
     senderEmail: row?.sender_email ?? "",
     trackingEmail: row?.tracking_email ?? "",
   };
