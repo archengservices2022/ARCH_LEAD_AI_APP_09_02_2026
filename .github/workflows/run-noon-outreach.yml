@@ -21,13 +21,14 @@ jobs:
           headers=(-H "content-type: application/json")
           if [ -n "${AUTOMATION_SECRET:-}" ]; then headers+=(-H "authorization: Bearer ${AUTOMATION_SECRET}"); fi
           call() {
-            name="$1"; path="$2"; timeout="$3"
+            name="$1"; path="$2"; timeout="$3"; method="${4:-POST}"
             echo "===== ${name} ====="
-            code=$(curl -sS --max-time "$timeout" -o response.json -w "%{http_code}" -X POST "${BASE}${path}" "${headers[@]}")
+            code=$(curl -sS --max-time "$timeout" -o response.json -w "%{http_code}" -X "$method" "${BASE}${path}" "${headers[@]}")
             cat response.json; echo; echo "HTTP_STATUS=${code}"
             if [ "$code" -lt 200 ] || [ "$code" -ge 300 ]; then exit 1; fi
           }
           call "Apply targets" "/api/automation/apply-outreach-targets" 30
+          call "Apollo decision-maker discovery" "/api/discovery/apollo" 180 GET
           call "Discovery and preparation" "/api/automation/daily-outreach" 310
           call "Approve and send batch 1" "/api/automation/send-ready" 120
           call "Approve and send batch 2" "/api/automation/send-ready" 120
