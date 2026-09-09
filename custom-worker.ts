@@ -15,6 +15,23 @@ function chicagoParts(timestamp: number) {
   return Object.fromEntries(parts.map((p) => [p.type, p.value]));
 }
 
+const BASE = "https://arch-lead-ai-app-09-02-2026.archengservices2022.workers.dev";
+
+async function postStage(path:string,headers:Headers){
+  const response=await fetch(`${BASE}${path}`,{method:"POST",headers});
+  const text=await response.text();
+  if(!response.ok)throw new Error(`${path} failed (${response.status}): ${text.slice(0,500)}`);
+  console.log(`${path} completed`,text.slice(0,2000));
+}
+
+async function runDaily(headers:Headers){
+  // Separate external requests preserve a fresh Cloudflare request/subrequest budget for each stage.
+  await postStage("/api/automation/apply-outreach-targets",headers);
+  await postStage("/api/automation/daily-outreach",headers);
+  await postStage("/api/automation/send-ready",headers);
+  await postStage("/api/automation/send-ready",headers);
+}
+
 const worker = {
   fetch: handler.fetch,
 
@@ -28,11 +45,9 @@ const worker = {
     const secret = (env as unknown as Record<string, string | undefined>).AUTOMATION_SECRET;
     if (secret) headers.set("authorization", `Bearer ${secret}`);
 
-    const url = "https://arch-lead-ai-app-09-02-2026.archengservices2022.workers.dev/api/automation/daily-outreach";
-    ctx.waitUntil(fetch(url, { method: "POST", headers }).then(async (response) => {
-      const text = await response.text();
-      if (!response.ok) throw new Error(`Daily outreach failed (${response.status}): ${text.slice(0, 500)}`);
-      console.log("Daily outreach completed", text.slice(0, 2000));
+    ctx.waitUntil(runDaily(headers).catch((error)=>{
+      console.error("Daily 8 AM outreach failed",error);
+      throw error;
     }));
   },
 };
