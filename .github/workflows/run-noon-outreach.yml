@@ -9,7 +9,7 @@ on:
 jobs:
   run-outreach:
     runs-on: ubuntu-latest
-    timeout-minutes: 15
+    timeout-minutes: 20
     steps:
       - name: Run production outreach stages
         env:
@@ -29,6 +29,7 @@ jobs:
           }
           call "Apply targets" "/api/automation/apply-outreach-targets" 30
           call "Apollo decision-maker discovery" "/api/discovery/apollo" 180 GET
+          call "Apollo buyer-fit and public-contact verification" "/api/discovery/apollo-enrich" 300
           call "Discovery and preparation" "/api/automation/daily-outreach" 310
           call "Approve and send batch 1" "/api/automation/send-ready" 120
           call "Approve and send batch 2" "/api/automation/send-ready" 120
