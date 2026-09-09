@@ -1,9 +1,9 @@
-name: Run Noon Outreach Once
+name: Daily Arch Outreach
 
 on:
-  push:
-    paths:
-      - ".github/workflows/run-noon-outreach.yml"
+  schedule:
+    # GitHub cron is UTC. 17:00 UTC = 12:00 PM CDT for St. Louis.
+    - cron: "0 17 * * 1-5"
   workflow_dispatch:
 
 jobs:
@@ -20,16 +20,21 @@ jobs:
           BASE="https://arch-lead-ai-app-09-02-2026.archengservices2022.workers.dev"
           headers=(-H "content-type: application/json")
           if [ -n "${AUTOMATION_SECRET:-}" ]; then headers+=(-H "authorization: Bearer ${AUTOMATION_SECRET}"); fi
+
           call() {
             name="$1"; path="$2"; timeout="$3"; method="${4:-POST}"
             echo "===== ${name} ====="
             code=$(curl -sS --max-time "$timeout" -o response.json -w "%{http_code}" -X "$method" "${BASE}${path}" "${headers[@]}")
             cat response.json; echo; echo "HTTP_STATUS=${code}"
-            if [ "$code" -lt 200 ] || [ "$code" -ge 300 ]; then exit 1; fi
+            if [ "$code" -lt 200 ] || [ "$code" -ge 300 ]; then
+              echo "Funnel stage failed: ${name}"
+              exit 1
+            fi
           }
+
           call "Apply targets" "/api/automation/apply-outreach-targets" 30
           call "Apollo decision-maker discovery" "/api/discovery/apollo" 180 GET
           call "Apollo buyer-fit and public-contact verification" "/api/discovery/apollo-enrich" 300
-          call "Discovery and preparation" "/api/automation/daily-outreach" 310
+          call "Discovery, verification and draft preparation" "/api/automation/daily-outreach" 310
           call "Approve and send batch 1" "/api/automation/send-ready" 120
           call "Approve and send batch 2" "/api/automation/send-ready" 120
