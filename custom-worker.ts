@@ -17,19 +17,33 @@ function chicagoParts(timestamp: number) {
 
 const BASE = "https://arch-lead-ai-app-09-02-2026.archengservices2022.workers.dev";
 
-async function postStage(path:string,headers:Headers){
-  const response=await fetch(`${BASE}${path}`,{method:"POST",headers});
+type Stage = { name:string; path:string; method?:"GET"|"POST" };
+
+async function runStage(stage:Stage,headers:Headers){
+  const response=await fetch(`${BASE}${stage.path}`,{method:stage.method||"POST",headers});
   const text=await response.text();
-  if(!response.ok)throw new Error(`${path} failed (${response.status}): ${text.slice(0,500)}`);
-  console.log(`${path} completed`,text.slice(0,2000));
+  let data:any={};
+  try{data=text?JSON.parse(text):{}}catch{data={raw:text.slice(0,1000)}}
+  if(!response.ok)throw new Error(`${stage.name} failed (${response.status}): ${text.slice(0,700)}`);
+  console.log(`${stage.name} completed`,JSON.stringify(data).slice(0,3000));
+  return data;
 }
 
 async function runDaily(headers:Headers){
-  // Separate external requests preserve a fresh Cloudflare request/subrequest budget for each stage.
-  await postStage("/api/automation/apply-outreach-targets",headers);
-  await postStage("/api/automation/daily-outreach",headers);
-  await postStage("/api/automation/send-ready",headers);
-  await postStage("/api/automation/send-ready",headers);
+  // Each stage is an external Worker request so it gets its own Cloudflare subrequest budget.
+  const stages:Stage[]=[
+    {name:"Apply outreach targets",path:"/api/automation/apply-outreach-targets"},
+    {name:"Apollo buyer discovery",path:"/api/discovery/apollo",method:"GET"},
+    {name:"Apollo buyer-fit + public contact verification",path:"/api/discovery/apollo-enrich"},
+    {name:"Core discovery + promotion + draft preparation",path:"/api/automation/daily-outreach"},
+    {name:"Approve + send batch 1",path:"/api/automation/send-ready"},
+    {name:"Approve + send batch 2",path:"/api/automation/send-ready"}
+  ];
+  const report:any={startedAt:new Date().toISOString(),stages:{}};
+  for(const s of stages){report.stages[s.name]=await runStage(s,headers)}
+  report.completedAt=new Date().toISOString();
+  console.log("ARCH_DAILY_OUTREACH_COMPLETE",JSON.stringify(report).slice(0,12000));
+  return report;
 }
 
 const worker = {
