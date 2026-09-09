@@ -26,15 +26,17 @@ export async function getSettings() {
   const row = await db.prepare(`
     SELECT
       MAX(CASE WHEN key='dry_run' THEN value END) AS dry_run,
+      MAX(CASE WHEN key='self_heal' THEN value END) AS self_heal,
       MAX(CASE WHEN key='engineering_daily_target' THEN value END) AS engineering_target,
       MAX(CASE WHEN key='software_daily_target' THEN value END) AS software_target,
       MAX(CASE WHEN key='daily_total_limit' THEN value END) AS total_limit,
       MAX(CASE WHEN key='sender_email' THEN value END) AS sender_email,
       MAX(CASE WHEN key='tracking_email' THEN value END) AS tracking_email
     FROM settings
-  `).first<{dry_run:string|null;engineering_target:string|null;software_target:string|null;total_limit:string|null;sender_email:string|null;tracking_email:string|null}>();
+  `).first<{dry_run:string|null;self_heal:string|null;engineering_target:string|null;software_target:string|null;total_limit:string|null;sender_email:string|null;tracking_email:string|null}>();
   return {
     dryRun: row?.dry_run !== "false",
+    selfHeal: row?.self_heal !== "false",
     engineeringTarget: Number(row?.engineering_target ?? 25),
     softwareTarget: Number(row?.software_target ?? 10),
     totalLimit: Number(row?.total_limit ?? 35),
