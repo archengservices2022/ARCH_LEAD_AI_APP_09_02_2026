@@ -25,17 +25,26 @@ export async function POST(req: Request) {
   if(s.dryRun)return Response.json({ok:false,error:"Production automation is blocked while Dry Run is ON."},{status:409});
   try{
     const attempts:Attempt[]=[];
-    let discovery=await run("discovery",findNewClients);attempts.push(discovery);
+    let discovery=await run("web-company-discovery",findNewClients);attempts.push(discovery);
+
+    // A prospect with no verifiable contact is a skip, not a reason to stop the daily run.
+    // Retry the safe web/contact stages once so existing qualified companies can become send-ready.
     if(!discovery.ok&&s.selfHeal){
-      // Safe repair cycle: retry verification/promotion/drafting against already discovered data,
-      // then make one fresh discovery attempt. This never bypasses qualification, suppression,
-      // duplicate prevention, email verification, or Gmail send safeguards.
-      attempts.push(await run("repair-contact-verification",verifyContacts));
-      attempts.push(await run("repair-lead-promotion",promoteReady));
-      attempts.push(await run("repair-draft-preparation",prepareDrafts));
-      discovery=await run("repair-discovery-retry",findNewClients);attempts.push(discovery);
+      attempts.push(await run("contact-verification-retry",verifyContacts));
+      attempts.push(await run("lead-promotion-retry",promoteReady));
+      attempts.push(await run("draft-preparation-retry",prepareDrafts));
     }
-    if(!discovery.ok)return Response.json({ok:false,stage:"self-heal-exhausted",selfHeal:s.selfHeal,attempts,discovery:discovery.data,targets:{engineering:s.engineeringTarget,software:s.softwareTarget,total:s.totalLimit},error:"The outreach funnel remained unhealthy after its bounded automatic repair cycle. Sending is intentionally stopped rather than bypassing safety checks."},{status:502});
-    return Response.json({ok:true,stage:attempts.length>1?"self-healed":"discovery-complete",selfHeal:s.selfHeal,attempts,discovery:discovery.data,targets:{engineering:s.engineeringTarget,software:s.softwareTarget,total:s.totalLimit},next:"Call /api/automation/send-ready in a separate Worker invocation."});
+
+    const draftsPrepared=attempts.reduce((n,a)=>n+Number(a.data?.queued||a.data?.summary?.draftsPrepared||0),0);
+    return Response.json({
+      ok:true,
+      stage:draftsPrepared>0?"web-first-send-ready":"web-first-search-complete",
+      selfHeal:s.selfHeal,
+      attempts,
+      discovery:discovery.data,
+      targets:{engineering:s.engineeringTarget,software:s.softwareTarget,total:s.totalLimit},
+      draftsPrepared,
+      next:"Call /api/automation/send-ready. Unverified prospects are skipped and do not block verified outreach."
+    });
   }catch(e){return Response.json({ok:false,error:e instanceof Error?e.message:"Discovery failed"},{status:500})}
 }
