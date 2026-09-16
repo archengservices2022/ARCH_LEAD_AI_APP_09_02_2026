@@ -27,14 +27,13 @@ jobs:
             code=$(curl -sS --max-time "$timeout" -o response.json -w "%{http_code}" -X "$method" "${BASE}${path}" "${headers[@]}")
             cat response.json; echo; echo "HTTP_STATUS=${code}"
             if [ "$code" -lt 200 ] || [ "$code" -ge 300 ]; then
-              echo "Funnel stage failed: ${name}"
+              echo "Stage failed: ${name}"
               exit 1
             fi
           }
 
+          # Web/company-first outreach. Apollo is optional enrichment and is not a gate.
           call "Apply targets" "/api/automation/apply-outreach-targets" 30
-          call "Apollo decision-maker discovery" "/api/discovery/apollo" 180 GET
-          call "Apollo buyer-fit and public-contact verification" "/api/discovery/apollo-enrich" 300
-          call "Discovery, verification and draft preparation" "/api/automation/daily-outreach" 310
+          call "Web client discovery, contact verification and draft preparation" "/api/automation/daily-outreach" 310
           call "Approve and send batch 1" "/api/automation/send-ready" 120
           call "Approve and send batch 2" "/api/automation/send-ready" 120
