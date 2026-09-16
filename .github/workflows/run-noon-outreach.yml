@@ -16,7 +16,7 @@ jobs:
           AUTOMATION_SECRET: ${{ secrets.AUTOMATION_SECRET }}
         shell: bash
         run: |
-          set -euo pipefail
+          set -u
           BASE="https://arch-lead-ai-app-09-02-2026.archengservices2022.workers.dev"
           headers=(-H "content-type: application/json")
           if [ -n "${AUTOMATION_SECRET:-}" ]; then headers+=(-H "authorization: Bearer ${AUTOMATION_SECRET}"); fi
@@ -24,16 +24,22 @@ jobs:
           call() {
             name="$1"; path="$2"; timeout="$3"; method="${4:-POST}"
             echo "===== ${name} ====="
-            code=$(curl -sS --max-time "$timeout" -o response.json -w "%{http_code}" -X "$method" "${BASE}${path}" "${headers[@]}")
-            cat response.json; echo; echo "HTTP_STATUS=${code}"
-            if [ "$code" -lt 200 ] || [ "$code" -ge 300 ]; then
-              echo "Stage failed: ${name}"
-              exit 1
+            code=$(curl -sS --max-time "$timeout" -o response.json -w "%{http_code}" -X "$method" "${BASE}${path}" "${headers[@]}" || echo "000")
+            cat response.json 2>/dev/null || true; echo; echo "HTTP_STATUS=${code}"
+            if [ "$code" -lt 200 ] 2>/dev/null || [ "$code" -ge 300 ] 2>/dev/null; then
+              echo "Stage skipped/failed; continuing to the next safe stage: ${name}"
+              return 1
             fi
+            return 0
           }
 
-          # Web/company-first outreach. Apollo is optional enrichment and is not a gate.
-          call "Apply targets" "/api/automation/apply-outreach-targets" 30
-          call "Web client discovery, contact verification and draft preparation" "/api/automation/daily-outreach" 310
-          call "Approve and send batch 1" "/api/automation/send-ready" 120
-          call "Approve and send batch 2" "/api/automation/send-ready" 120
+          # July-style web/company-first flow. Each stage is a separate Worker request so
+          # Cloudflare CPU limits cannot kill the entire acquisition run. Apollo is optional.
+          call "Apply targets" "/api/automation/apply-outreach-targets" 30 || true
+          call "Engineering opportunity search" "/api/discovery/mechanical" 90 GET || true
+          call "Software opportunity search" "/api/discovery/software" 90 GET || true
+          call "Public company/contact verification" "/api/discovery/enrich-contacts" 120 || true
+          call "Promote verified contacts to CRM" "/api/discovery/promote-ready" 60 || true
+          call "Prepare safe outreach drafts" "/api/outreach/prepare" 60 || true
+          call "Approve and send verified batch 1" "/api/automation/send-ready" 120 || true
+          call "Approve and send verified batch 2" "/api/automation/send-ready" 120 || true
